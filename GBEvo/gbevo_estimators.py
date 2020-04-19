@@ -4,6 +4,7 @@
 """
 from sklearn.base import BaseEstimator, MetaEstimatorMixin, clone
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
+from sklearn.model_selection import StratifiedKFold, KFold
 import numpy as np
 
 
@@ -87,13 +88,18 @@ class GBEvo(MetaEstimatorMixin, BaseEstimator):
         self.refit = refit
         self.verbose = verbose
 
-    def fit(self, X, y):
+    def fit(self, X, y, strat_vec=None):
 
         # Check that X and y have correct shape
         X, y = check_X_y(X, y)
 
         self.X_ = X
         self.y_ = y
+        
+        if type(self.cv) is int:
+            cv_splits = KFold(self.cv).split(self.X_, self.y_)
+        elif (type(self.cv) is StratifiedKFold) and not (strat_vec is None):
+            cv_splits = self.cv.split(self.X_, strat_vec)
 
         self.estimator = clone(self.estimator)
 
