@@ -25,25 +25,20 @@ class GBEvo(MetaEstimatorMixin, BaseEstimator):
     param_ranges : list of dictionaries
         List of dictionaries with parameters names (string) as keys and tuples
         with lower bound and upper bound (lb, ub) of valid hyperparameters
-        as values.
+        as values. The type of a parameter is inffered from the first value in
+        tuple.
+        Example: {'n_estimators' : (10, 100),
+                  'max_bin' : (8, 255),
+                  'reg_lambda' : (0.0, 1.0)}
+        In the above example, `n_estimators` and `max_bin` parameters are of
+        integer type, while type of `reg_lambda` is float.
 
     feature_selection : bool, default: True
         Determines feature selection along with hyperparameters optimization.
 
-    scoring : string, callable, list/tuple, dict or None, default: None
-        A single string (see :ref:`scoring_parameter`) or a callable
-        (see :ref:`scoring`) to evaluate the predictions on the test set.
-
-        For evaluating multiple metrics, either give a list of (unique) strings
-        or a dict with names as keys and callables as values.
-
-        NOTE that when using custom scorers, each scorer should return a single
-        value. Metric functions returning a list/array of values can be wrapped
-        into multiple scorers that return one value each.
-
-        See :ref:`multimetric_grid_search` for an example.
-
-        If None, the estimator's score method is used.
+    scoring : callable, default: None
+        A callable which takes y_true and y_pred array as arguments and returns
+        a score.
 
     n_jobs : int or None, optional, default: -1
         Number of jobs to run in parallel.
@@ -55,18 +50,7 @@ class GBEvo(MetaEstimatorMixin, BaseEstimator):
 
         - None, to use the default 5-fold cross validation,
         - integer, to specify the number of folds in a `(Stratified)KFold`,
-        - :term:`CV splitter`,
         - An iterable yielding (train, test) splits as arrays of indices.
-
-        For integer/None inputs, if the estimator is a classifier and ``y`` is
-        either binary or multiclass, :class:`StratifiedKFold` is used. In all
-        other cases, :class:`KFold` is used.
-
-        Refer :ref:`User Guide <cross_validation>` for the various
-        cross-validation strategies that can be used here.
-
-        .. versionchanged:: 0.22
-            ``cv`` default value if None changed from 3-fold to 5-fold.
 
     refit : boolean, string, or callable, default: True
         Refit an estimator using the best found parameters on the whole
@@ -95,11 +79,13 @@ class GBEvo(MetaEstimatorMixin, BaseEstimator):
 
         self.X_ = X
         self.y_ = y
-        
+
         if type(self.cv) is int:
             cv_splits = KFold(self.cv).split(self.X_, self.y_)
         elif (type(self.cv) is StratifiedKFold) and not (strat_vec is None):
             cv_splits = self.cv.split(self.X_, strat_vec)
+        else:
+            cv_splits = self.cv.split(self.X_, self.y_)
 
         self.estimator = clone(self.estimator)
 
