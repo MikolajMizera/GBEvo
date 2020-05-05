@@ -7,8 +7,9 @@ from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.model_selection import StratifiedKFold, KFold
 import numpy as np
 
+from .optimizers import CMAOpt
 
-class GBEvo(MetaEstimatorMixin, BaseEstimator):
+class GBEvoOptimizer(MetaEstimatorMixin, BaseEstimator):
 
     """Evolutionary optimization of parameter values for an estimator.
 
@@ -19,26 +20,26 @@ class GBEvo(MetaEstimatorMixin, BaseEstimator):
     ----------
     estimator : estimator object.
         This is assumed to implement the scikit-learn estimator interface.
-        Either estimator needs to provide a ``score`` function,
-        or ``scoring`` must be passed.
 
     param_ranges : list of dictionaries
-        List of dictionaries with parameters names (string) as keys and tuples
-        with lower bound and upper bound (lb, ub) of valid hyperparameters
-        as values. The type of a parameter is inffered from the first value in
-        tuple.
-        Example: {'n_estimators' : (10, 100),
-                  'max_bin' : (8, 255),
-                  'reg_lambda' : (0.0, 1.0)}
+        List of dictionaries with parameters names (string) as keys and ranges
+        of valid hyperparameters as values. The type of a parameter is inffered
+        from the first value in tuple.
+        Example: {'n_estimators' : np.arange(10, 100, 10),
+                  'max_bin' : 2**np.arange(3, 8),
+                  'reg_lambda' : np.linspace(0, 5, 100),
+                  'learning_rate': np.logspace(-5, -1, 100)}
         In the above example, `n_estimators` and `max_bin` parameters are of
-        integer type, while type of `reg_lambda` is float.
+        integer type, while `reg_lambda` and `learning_rate` are floats.
 
     feature_selection : bool, default: True
         Determines feature selection along with hyperparameters optimization.
+        If True, then estimator will be retturned wrapped by FMEstimator
+        object.
 
-    scoring : callable, default: None
+    metric : callable, default: None
         A callable which takes y_true and y_pred array as arguments and returns
-        a score.
+        a score value (the higher value the better score).
 
     n_jobs : int or None, optional, default: -1
         Number of jobs to run in parallel.
@@ -60,17 +61,22 @@ class GBEvo(MetaEstimatorMixin, BaseEstimator):
         Controls the verbosity: the higher, the more messages.
 
 """
-    def __init__(self, estimator, params_ranges, feature_selection=True,
-                 scoring=None, n_jobs=None, cv=5, refit=True, verbose=0):
+    def __init__(self, estimator, param_ranges, feature_selection=True,
+                 metric=None, n_jobs=None, cv=5, refit=True, verbose=0,
+                 optimizer_settings={'population_size': 25,
+                                     'n_epochs': 100,
+                                     'n_populations': 5,
+                                     'migration_frequency': 5}):
 
         self.estimator = estimator
-        self.params_ranges = params_ranges
+        self.param_ranges = param_ranges
         self.feature_selection = feature_selection
-        self.scoring = scoring
+        self.metric = metric
         self.n_jobs = n_jobs
         self.cv = cv
         self.refit = refit
         self.verbose = verbose
+        self.optimizer_settings = optimizer_settings
 
     def fit(self, X, y, strat_vec=None):
 
@@ -89,8 +95,13 @@ class GBEvo(MetaEstimatorMixin, BaseEstimator):
 
         self.estimator = clone(self.estimator)
 
-        # Code for evolution here
-
+        es_optimizer = CMAOpt(self.estimator, self.param_ranges, 
+                             **self.optimizer_settings, n_jobs=1, 
+                             metric=self.metric, 
+                             feature_selection=self.feature_selection,
+                             verbose=self.verbose)
+        es_optimizer.optimze(self.X_, self.y_, cv_splits)
+        
         return self
 
     def predict(self, X):
@@ -104,7 +115,7 @@ class GBEvo(MetaEstimatorMixin, BaseEstimator):
         return self.base_estimator.predict(X[:, self.var_mask])
 
 
-class GradientBoostingFM(MetaEstimatorMixin, BaseEstimator):
+class FMEstimator(MetaEstimatorMixin, BaseEstimator):
 
     def __init__(self, estimator, params={}, feature_mask=None):
         self.estimator = estimator
