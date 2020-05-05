@@ -61,7 +61,7 @@ class CMAOpt:
         self.postprocess_f = postprocess_f
 
     def _strategy_init(self, individual_size):
-        random_vec = np.random.uniform(0.75, 0.25, individual_size)
+        random_vec = np.random.uniform(0, 1, individual_size)
         return cma.CMAEvolutionStrategy(random_vec, 0.5, self.settings)
 
     def _migrate(self, populations):
