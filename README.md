@@ -1,6 +1,6 @@
 # UNDER DEVELOPMENT
 ## Gradient Boosting Model Evolution
-GBEvo is a Python module for variables selection and hyperparameter optimization of gradient boosting models (XGBoost, LGBM, CatBoost, scikit-learn) and is distributed under the 3-Clause BSD license.
+GBEvo is a Python module for features selection and hyperparameter optimization of gradient boosting models (XGBoost, LGBM, CatBoost, scikit-learn).
 ## Getting Started
 ### Dependencies
 GBEvo requires:
