@@ -11,4 +11,4 @@ Install the packgace using pip
 pip install https://github.com/MikolajMizera/GBEvo.git
 ```
 ### Development status
-07-06-2020 Minimal working example
+07-05-2020 Minimal working example
